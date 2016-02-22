@@ -23,6 +23,7 @@ CELERY_QUEUES = (
 
    
 CELERY_ROUTES = {
+        'thehonestgenepipeline.imputation.test':{'queue':'imputation'},
         'thehonestgenepipeline.imputation.imputation':{'queue':'imputation'},
         'thehonestgenepipeline.imputation.convert':{'queue':'imputation'},
         'thehonestgenepipeline.imputation.impute':{'queue':'imputation'},

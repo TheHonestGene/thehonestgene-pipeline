@@ -1,9 +1,10 @@
 from celery.utils.log import get_task_logger
+from celery.signals import after_setup_task_logger
 from thehonestgenepipeline.celery import celery
 from ancestor.core import ancestry as an  
 from os import path
-from . import GENOTYPE_FOLDER
-from . import DATA_FOLDER
+from . import GENOTYPE_FOLDER,DATA_FOLDER
+from .progress_logger import CeleryProgressLogHandler 
 import h5py
 
 import logging
@@ -11,11 +12,16 @@ import logging
 logger = get_task_logger(__name__)
 # pass through environment
 
+@after_setup_task_logger.connect
+def setup_task_logger(**kwargs):
+    progress_handler = CeleryProgressLogHandler(celery.conf.BROKER_URL)
+    logger.addHandler(progress_handler)
+
 @celery.task(serialiazer='json')
-def analysis(genotype,weights_file,pcs_file):
+def analysis(id,weights_file,pcs_file):
     try:
-        logger.info('Starting Ancestry')
-        genotype_file= '%s/IMPUTED/%s' % (GENOTYPE_FOLDER,genotype)
+        logger.info('Starting Ancestry',extra={'progress':0,'id':id})
+        genotype_file= '%s/IMPUTED/%s.hdf5' % (GENOTYPE_FOLDER,id)
         if not path.exists(genotype_file):
             raise Exception('Genotype file %s not found' % genotype_file)
         # Need to pass in 
@@ -25,7 +31,7 @@ def analysis(genotype,weights_file,pcs_file):
         ancestry_dict = an.ancestry_analysis(genotype_file,weights_file,pcs_file)
         result = {'pc1':float(ancestry_dict['pc1']),'pc2':float(ancestry_dict['pc2']),'is_in_population':bool(ancestry_dict['is_in_population']),
                  'pop_mean':ancestry_dict['pop_mean'].tolist(),'pop_std':ancestry_dict['pop_std'].tolist(),'ind_lim':ancestry_dict['ind_lim'].tolist(),'population':ancestry_dict['population']}
-        logger.info('Finished Ancestry')
+        logger.info('Finished Ancestry',extra={'progress':100,'id':id})
     except Exception as err:
         raise err
     return result
