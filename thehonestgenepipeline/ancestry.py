@@ -14,7 +14,7 @@ logger = get_task_logger(__name__)
 
 @after_setup_task_logger.connect
 def setup_task_logger(**kwargs):
-    progress_handler = CeleryProgressLogHandler(celery.conf.BROKER_URL)
+    progress_handler = CeleryProgressLogHandler(celery.conf.BROKER_URL,'ancestry')
     logger.addHandler(progress_handler)
 
 @celery.task(serialiazer='json')

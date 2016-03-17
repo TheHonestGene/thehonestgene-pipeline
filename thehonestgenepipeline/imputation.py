@@ -13,7 +13,7 @@ logger = get_task_logger(__name__)
 
 @after_setup_task_logger.connect
 def setup_task_logger(**kwargs):
-    progress_handler = CeleryProgressLogHandler(celery.conf.BROKER_URL)
+    progress_handler = CeleryProgressLogHandler(celery.conf.BROKER_URL,'imputation')
     logger.addHandler(progress_handler)
 
 @celery.task(serialiazer='json')
@@ -59,7 +59,7 @@ def imputation(id):
     logger.info('Starting Imputation Pipeline',extra={'progress':0,'id':id})
     result['convert'] = convert(id)
     result['imputation'] = impute(id)
-    logger.info('Finished Imputation Pipeline',extra={'progress':100,'id':id})
+    logger.info('Finished Imputation Pipeline',extra={'progress':100,'id':id,'state':'FINISHED'})
     return result
 
 
