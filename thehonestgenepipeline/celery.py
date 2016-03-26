@@ -4,7 +4,7 @@ import os
 
 os.environ.setdefault('CELERY_CONFIG_MODULE', 'thehonestgenepipeline.celeryconfig')
 celery = Celery('thehonestgenepipeline',
-    include=['thehonestgenepipeline.imputation','thehonestgenepipeline.ancestry'])
+    include=['thehonestgenepipeline.imputation','thehonestgenepipeline.ancestry','thehonestgenepipeline.riskprediction'])
 
 celery.config_from_envvar('CELERY_CONFIG_MODULE')
 

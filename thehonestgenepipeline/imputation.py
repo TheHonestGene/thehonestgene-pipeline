@@ -8,7 +8,7 @@ from . import GENOTYPE_FOLDER,DATA_FOLDER
 from .progress_logger import CeleryProgressLogHandler 
 import logging
 
-logger = get_task_logger(__name__)
+logger = get_task_logger(imp.__name__)
 
 
 @after_setup_task_logger.connect
@@ -17,10 +17,11 @@ def setup_task_logger(**kwargs):
     logger.addHandler(progress_handler)
 
 @celery.task(serialiazer='json')
-def convert(id):
+def convert(id,log_extra={'progress':0,'max_progress':100}):
     try:
+        log_extra['id'] = id
         filename = '%s.hdf5' % id
-        logger.info('Starting Conversion',extra={'progress':5,'id':id})
+        logger.info('Starting Conversion',extra=log_extra)
         genotype_file= '%s/ORIGINAL/%s' % (GENOTYPE_FOLDER,filename)
         output_file = '%s/CONVERTED/%s' % (GENOTYPE_FOLDER,filename)
         if not path.exists(genotype_file):
@@ -28,17 +29,19 @@ def convert(id):
         # Need to pass in 
         version = _get_platform_from_genotype(genotype_file)
         nt_map_file = '%s/%s_nt_map.pickled' % (DATA_FOLDER,version)
-        result = imp.convert_genotype_nt_key_encoding(genotype_file,output_file,nt_map_file)
-        logger.info('Finished Conversion',extra={'progress':20,'id':id})
+        result = imp.convert_genotype_nt_key_encoding(genotype_file,output_file,nt_map_file,log_extra=log_extra)
+        logger.info('Finished Conversion',extra={'progress':log_extra.get('max_progress',100),'id':id})
     except Exception as err:
+        logger.error('Error during conversion',extra={'state':'ERROR','id':id})
         raise err
     return result
     
 @celery.task(serialiazer='json')
-def impute(id):
+def impute(id,log_extra={'progress':0,'max_progress':100}):
     try:
+        log_extra['id'] = id
         filename = '%s.hdf5' % id
-        logger.info('Starting Imputation',extra={'progress':25,'id':id})
+        logger.info('Starting Imputation',extra=log_extra)
         genotype_file= '%s/CONVERTED/%s' % (GENOTYPE_FOLDER,filename)
         output_file = '%s/IMPUTED/%s' % (GENOTYPE_FOLDER,filename)
         if not path.exists(genotype_file):
@@ -46,9 +49,10 @@ def impute(id):
         # Need to pass in 
         version = '23andme_v1'
         ld_folder = '%s/LD_DATA/%s' % (DATA_FOLDER,version)
-        result = imp.impute(genotype_file,ld_folder,output_file)
-        logger.info('Finished Imputation',extra={'progress':95,'id':id})
+        result = imp.impute(genotype_file,ld_folder,output_file,log_extra=log_extra)
+        logger.info('Finished Imputation',extra={'progress':log_extra.get('max_progress',100),'id':id})
     except Exception as err:
+        logger.error('Error during imputation',extra={'state':'ERROR','id':id})
         raise err
     return result
 
@@ -57,23 +61,10 @@ def impute(id):
 def imputation(id):
     result = {}
     logger.info('Starting Imputation Pipeline',extra={'progress':0,'id':id})
-    result['convert'] = convert(id)
-    result['imputation'] = impute(id)
+    result['convert'] = convert(id,{'progress':5,'max_progress':20})
+    result['imputation'] = impute(id,{'progress':20,'max_progress':95})
     logger.info('Finished Imputation Pipeline',extra={'progress':100,'id':id,'state':'FINISHED'})
     return result
-
-
-@celery.task(serialiazer='json')
-def test():
-    #logger.addHandler(progress_handler)
-    logger.info('start test')
-    logger.info('log test no celery event',extra={'some data':'test'})
-    logger.info('log test celery event',extra={'progress':50,'id':'someid'})
-    logger.info('log test celery event and custom text',extra={'progress':80,'task':'text','id':'someid2'})
-    import time
-    time.sleep(5)
-    #logger.removeHandler(fh);
-    return  {'status':'OK'}
 
 def _get_platform_from_genotype(filename):
     return '23andme_v1'
