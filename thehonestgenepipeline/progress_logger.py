@@ -25,7 +25,7 @@ class ProgressLogger:
                 self.logger.info(task)
             if data == None:
                 data = self.data
-            body = {'progress':self.progress,'task':task,'state':state,'analysisType':self.analysis_type,'data':data} 
+            body = {'progress':self.progress,'task':task,'state':state,'analysisType':self.analysis_type,'data':data, 'id':self.id} 
             self.channel.basic_publish(exchange='',routing_key=self.queue,body=json.dumps(body))
         except Exception as err:
             pass
@@ -57,7 +57,7 @@ class CeleryProgressLogHandler(logging.StreamHandler):
                     msg = record.__dict__['task']
                 state = record.__dict__.get('state','RUNNING')
                 additional_data =  record.__dict__.get('data',None)
-                body = {'progress':progress,'task':msg,'state':state,'analysisType':self.analysis_type,'data':additional_data}
+                body = {'progress':progress,'task':msg,'state':state,'analysisType':self.analysis_type,'data':additional_data,'id': id}
                 self.channel.basic_publish(exchange='',routing_key=queue,body=json.dumps(body))
             except Exception as err:
                 print(err)
