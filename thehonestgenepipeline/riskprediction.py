@@ -14,7 +14,7 @@ logger = get_task_logger(pred.__name__)
 
 @after_setup_task_logger.connect
 def setup_task_logger(**kwargs):
-    progress_handler = CeleryProgressLogHandler(celery.conf.BROKER_URL,'riskprediction')
+    progress_handler = CeleryProgressLogHandler(celery,'riskprediction')
     logger.addHandler(progress_handler)
 
 @celery.task(serialiazer='json')

@@ -13,7 +13,7 @@ logger = get_task_logger(imp.__name__)
 
 @after_setup_task_logger.connect
 def setup_task_logger(**kwargs):
-    progress_handler = CeleryProgressLogHandler(celery.conf.BROKER_URL,'imputation')
+    progress_handler = CeleryProgressLogHandler(celery,'imputation')
     logger.addHandler(progress_handler)
 
 @celery.task(serialiazer='json')

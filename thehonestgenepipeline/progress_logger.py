@@ -1,5 +1,5 @@
 import logging,os
-import pika
+from kombu import Exchange
 import json
 
 
@@ -37,33 +37,28 @@ class ProgressLogger:
 
 class CeleryProgressLogHandler(logging.StreamHandler):
 
-    def __init__(self,BROKER,analysis_type):
-        self.BROKER = BROKER
+    def __init__(self,app,analysis_type):
+        self.app = app
+        self.exchange = Exchange('')
         self.analysis_type = analysis_type
-        self.channel = None
-        self._connect()
-        print('connected')
         logging.StreamHandler.__init__(self)
     
     def emit(self,record):
         if 'progress' in record.__dict__ and 'id' in record.__dict__:
-            self._connect()
-            id = record.__dict__['id']
-            queue = 'updates_%s' % id
-            try:
-                progress = record.__dict__['progress']
-                msg = self.format(record)
-                if 'task' in record.__dict__:
-                    msg = record.__dict__['task']
-                state = record.__dict__.get('state','RUNNING')
-                additional_data =  record.__dict__.get('data',None)
-                body = {'progress':progress,'task':msg,'state':state,'analysisType':self.analysis_type,'data':additional_data,'id': id}
-                self.channel.basic_publish(exchange='',routing_key=queue,body=json.dumps(body))
-            except Exception as err:
-                print(err)
-                pass
-     
-    def _connect(self):
-        if not self.channel or self.channel.connection.is_open == False or self.channel.is_open == False:
-            print('Connect')
-            self.channel = pika.BlockingConnection(pika.ConnectionParameters(self.BROKER)).channel()
+            with self.app.connection_or_acquire() as conn:
+                exchange = self.exchange(conn.channel())
+                id = record.__dict__['id']
+                queue = 'updates_%s' % id
+                try:
+                    progress = record.__dict__['progress']
+                    msg = self.format(record)
+                    if 'task' in record.__dict__:
+                        msg = record.__dict__['task']
+                    state = record.__dict__.get('state','RUNNING')
+                    additional_data =  record.__dict__.get('data',None)
+                    body = {'progress':progress,'task':msg,'state':state,'analysisType':self.analysis_type,'data':additional_data,'id': id}
+                    message = exchange.Message(json.dumps(body))
+                    exchange.publish(message,routing_key=queue)
+                except Exception as err:
+                    print(err)
+                    pass
