@@ -5,7 +5,9 @@ from imputor.core import impute as imp
 from os import path
 import h5py
 from . import GENOTYPE_FOLDER,DATA_FOLDER
-from .progress_logger import CeleryProgressLogHandler 
+from . import get_platform_from_genotype
+from .progress_logger import CeleryProgressLogHandler
+
 import logging
 
 logger = get_task_logger(imp.__name__)
@@ -27,12 +29,12 @@ def convert(id,log_extra={'progress':0,'max_progress':100}):
         if not path.exists(genotype_file):
             raise Exception('Genotype file %s not found' % genotype_file)
         # Need to pass in 
-        version = _get_platform_from_genotype(genotype_file)
-        nt_map_file = '%s/%s_nt_map.pickled' % (DATA_FOLDER,version)
+        platform = get_platform_from_genotype(genotype_file)
+        nt_map_file = '%s/NT_DATA/%s_nt_map.pickled' % (DATA_FOLDER,platform)
         result = imp.convert_genotype_nt_key_encoding(genotype_file,output_file,nt_map_file,log_extra=log_extra)
         logger.info('Finished Conversion',extra={'progress':log_extra.get('max_progress',100),'id':id})
     except Exception as err:
-        logger.error('Error during conversion',extra={'state':'ERROR','id':id})
+        logger.error('Error during conversion',extra=log_extra)
         raise err
     return result
     
@@ -47,12 +49,12 @@ def impute(id,log_extra={'progress':0,'max_progress':100}):
         if not path.exists(genotype_file):
             raise Exception('Genotype file %s not found' % genotype_file)
         # Need to pass in 
-        version = '23andme_v1'
-        ld_folder = '%s/LD_DATA/%s' % (DATA_FOLDER,version)
+        platform = get_platform_from_genotype(genotype_file)
+        ld_folder = '%s/LD_DATA/%s' % (DATA_FOLDER,platform)
         result = imp.impute(genotype_file,ld_folder,output_file,log_extra=log_extra)
         logger.info('Finished Imputation',extra={'progress':log_extra.get('max_progress',100),'id':id})
     except Exception as err:
-        logger.error('Error during imputation',extra={'state':'ERROR','id':id})
+        logger.error('Error during imputation',extra=log_extra)
         raise err
     return result
 
@@ -65,6 +67,3 @@ def imputation(id):
     result['imputation'] = impute(id,{'progress':20,'max_progress':95})
     logger.info('Finished Imputation Pipeline',extra={'progress':100,'id':id,'state':'FINISHED'})
     return result
-
-def _get_platform_from_genotype(filename):
-    return '23andme_v1'

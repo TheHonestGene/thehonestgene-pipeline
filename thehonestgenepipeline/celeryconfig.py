@@ -1,7 +1,7 @@
 from kombu import Exchange, Queue
 import os
 BROKER_URL = os.environ['CELERY_BROKER']
-CELERY_RESULT_BACKEND='amqp://'
+CELERY_RESULT_BACKEND=os.environ.get('CELERY_BACKEND','amqp://')
 CELERY_RESULT_PERSISTENT = True
 CELERY_DISABLE_RATE_LIMITS = True
 CELERY_TASK_SERIALIZER = 'json'

@@ -55,6 +55,8 @@ class CeleryProgressLogHandler(logging.StreamHandler):
                     if 'task' in record.__dict__:
                         msg = record.__dict__['task']
                     state = record.__dict__.get('state','RUNNING')
+                    if record.levelname == 'ERROR':
+                        state = 'ERROR'
                     additional_data =  record.__dict__.get('data',None)
                     body = {'progress':progress,'task':msg,'state':state,'analysisType':self.analysis_type,'data':additional_data,'id': id}
                     message = exchange.Message(json.dumps(body))
