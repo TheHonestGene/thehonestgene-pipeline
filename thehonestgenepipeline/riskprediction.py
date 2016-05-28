@@ -20,14 +20,14 @@ def setup_task_logger(**kwargs):
     logger.addHandler(progress_handler)
 
 @celery.task(serialiazer='json')
-def run(id,trait,sex=None):
+def run(id,trait):
     try:
         log_extra={'id':id,'progress':0,'data':trait}
         logger.info('Starting Risk Prediction',extra=log_extra)
         genotype_file= '%s/IMPUTED/%s.hdf5' % (GENOTYPE_FOLDER,id)
         platform = get_platform_from_genotype(genotype_file)
         trait_folder = '%s/PRED_DATA/%s/%s/' % (DATA_FOLDER,trait,platform)
-        risk = pred.predict(genotype_file,trait_folder,sex=sex,log_extra=log_extra)
+        risk = pred.predict(genotype_file,trait_folder,log_extra=log_extra)
         result = {'trait':trait,'risk':risk}
         logger.info('Finished Risk Prediction',extra={'id':id,'progress':100,'state':'FINISHED','data':trait})
     except Exception as err:
