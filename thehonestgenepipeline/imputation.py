@@ -6,6 +6,7 @@ from celery.utils.log import get_task_logger
 from celery.signals import after_setup_task_logger
 from thehonestgenepipeline.celery import celery
 from imputor.core import impute as imp
+from imputor.core import genotype_parser
 from . import GENOTYPE_FOLDER, DATA_FOLDER
 from . import get_platform_from_genotype, save_analysis_data
 from .progress_logger import CeleryProgressLogHandler
@@ -41,7 +42,7 @@ def convert(genotype_id, log_extra=None):
         # Need to pass in
         platform = get_platform_from_genotype(genotype_file)
         nt_map_file = '%s/NT_DATA/%s_nt_map.pickled' % (DATA_FOLDER, platform)
-        result = imp.convert_genotype_nt_key_encoding(genotype_file, output_file, nt_map_file, log_extra=log_extra)
+        result = genotype_parser.convert_genotype_nt_key_encoding(genotype_file, output_file, nt_map_file, log_extra=log_extra)
         save_analysis_data(output_file, result, 'convert')
         LOGGER.info('Finished Conversion', extra={'progress':log_extra.get('max_progress', 100), 'id':genotype_id})
     except Exception as err:
